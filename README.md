@@ -129,5 +129,3 @@ The following are intentionally documented as blocked in this workspace:
 - Server `nginx -t` result.
 - Certbot certificate issuance and renewal result.
 - Live `/threads` rate-limit curl evidence.
-
-Use `STUDENT_NOTES_TEMPLATE.md` to fill these only after real evidence is available.
