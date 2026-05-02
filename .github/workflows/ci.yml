@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: forumapi_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d forumapi_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      PORT: 3000
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: forumapi_test
+      ACCESS_TOKEN_KEY: access-token-key-test
+      REFRESH_TOKEN_KEY: refresh-token-key-test
+      ACCESS_TOKEN_AGE: 3000
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Write CI test env
+        run: |
+          cat > .test.env <<'EOF'
+          NODE_ENV=test
+          PORT=3000
+          PGHOST=localhost
+          PGPORT=5432
+          PGUSER=postgres
+          PGPASSWORD=postgres
+          PGDATABASE=forumapi_test
+          ACCESS_TOKEN_KEY=access-token-key-test
+          REFRESH_TOKEN_KEY=refresh-token-key-test
+          ACCESS_TOKEN_AGE=3000
+          EOF
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run test migrations
+        run: npm run migrate:test up
+
+      - name: Run Vitest
+        run: npm test
+
+      - name: Run coverage
+        run: npm run test:coverage
+
+      - name: Start app for Newman
+        run: |
+          npm run start > app.log 2>&1 &
+          echo $! > app.pid
+
+      - name: Wait for app
+        run: |
+          for i in {1..30}; do
+            if curl --silent --show-error --output /dev/null http://localhost:3000; then
+              exit 0
+            fi
+
+            sleep 1
+          done
+
+          cat app.log
+          exit 1
+
+      - name: Run Newman
+        run: npm run test:postman
+
+      - name: Stop app
+        if: always()
+        run: |
+          if [ -f app.pid ]; then
+            if kill "$(cat app.pid)"; then
+              echo "Stopped app"
+            fi
+          fi

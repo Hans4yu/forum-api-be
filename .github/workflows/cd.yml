@@ -1,0 +1,61 @@
+name: CD
+
+on:
+  push:
+    branches: [main, master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Configure known hosts
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload app environment
+        run: |
+          umask 077
+          printf '%s' "${{ secrets.APP_ENV }}" > app.env
+          scp -P "${{ secrets.SSH_PORT }}" app.env "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/forum-api.env.${{ github.run_id }}"
+          rm app.env
+
+      - name: Deploy application
+        run: |
+          ssh -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" 'bash -s' -- "${{ secrets.DEPLOY_PATH }}" "/tmp/forum-api.env.${{ github.run_id }}" <<'EOF'
+          set -euo pipefail
+
+          deploy_path="$1"
+          env_file="$2"
+
+          cd "$deploy_path"
+          install -m 600 "$env_file" .env
+          rm "$env_file"
+          git pull
+          npm ci --omit=dev
+          npm run migrate up
+          pm2 restart forum-api || pm2 start src/app.js --name forum-api
+          EOF
+
+      - name: Health check
+        run: |
+          case "${{ secrets.HEALTHCHECK_URL }}" in
+            https://*) ;;
+            *)
+              printf '%s\n' 'HEALTHCHECK_URL must use HTTPS.'
+              exit 1
+              ;;
+          esac
+
+          curl --fail --silent --show-error --location --max-time 30 "${{ secrets.HEALTHCHECK_URL }}" > /dev/null
