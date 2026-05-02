@@ -115,7 +115,7 @@ Deployment details are in `DEPLOYMENT.md`. The root `nginx.conf` is an example c
 
 The configured `/threads` rate limit is `rate=90r/m`, `burst=20`, and `limit_req_status 429`. Other routes such as `/users` and `/authentications` are not rate-limited by this NGINX example.
 
-Server `nginx -t`, Certbot issuance, live HTTPS validation, and live curl rate-limit checks are blocked until an actual server, domain, and certificate are available. Do not claim these checks as passed without real evidence.
+Server `nginx -t`, Certbot issuance, live HTTPS validation, and live curl rate-limit checks are blocked until an actual server, domain, and certificate are available.
 
 ## Blocked External Checks
 
