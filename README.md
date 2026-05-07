@@ -106,6 +106,8 @@ Safe failed-to-passed CI PR procedure:
 
 Real GitHub CI runs, real CD runs, public repository URL, production deployment, HTTPS API URL, and health-check success are not claimed by this repository until real GitHub/server/domain/certificate evidence exists.
 
+Last CD trigger update: 2026-05-08.
+
 ## Deployment, NGINX, HTTPS, and Rate Limit
 
 Deployment details are in `DEPLOYMENT.md`. The root `nginx.conf` is an example config for HTTPS termination, ACME challenge handling, and rate limiting only these endpoints:
