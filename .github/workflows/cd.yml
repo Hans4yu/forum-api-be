@@ -59,4 +59,15 @@ jobs:
               ;;
           esac
 
-          curl --fail --silent --show-error --location --max-time 30 "${{ secrets.HEALTHCHECK_URL }}" > /dev/null
+          for i in {1..20}; do
+            if curl --fail --silent --show-error --location --max-time 10 "${{ secrets.HEALTHCHECK_URL }}" > /dev/null; then
+              echo "Health check passed on attempt $i"
+              exit 0
+            fi
+            echo "Health check failed on attempt $i, retrying..."
+            sleep 3
+          done
+
+          echo "Health check failed after retries"
+          exit 1
+
