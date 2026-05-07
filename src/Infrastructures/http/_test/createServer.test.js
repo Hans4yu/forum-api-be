@@ -29,6 +29,17 @@ describe('HTTP server', () => {
     expect(response.status).toEqual(404);
   });
 
+  it('should response 200 when request health route', async () => {
+    const app = await createServer({});
+
+    const response = await request(app).get('/health');
+
+    expect(response.status).toEqual(200);
+    expect(response.body).toEqual({
+      status: 'success',
+    });
+  });
+
   it('should response 500 when authentication token manager cannot be resolved', async () => {
     const app = await createServer({
       getInstance: vi.fn().mockImplementation((dependencyName) => {
