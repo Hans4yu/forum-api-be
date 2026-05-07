@@ -16,6 +16,14 @@ const createServer = async (container) => {
   app.use('/authentications', authentications(container));
   app.use('/threads', threads(container));
 
+  app.get('/health', (req, res) => {
+    void req;
+
+    res.status(200).json({
+      status: 'success',
+    });
+  });
+
   // Global error handler
   app.use((error, req, res, _next) => {
     void _next;
